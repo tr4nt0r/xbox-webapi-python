@@ -83,7 +83,7 @@ packages = ["src/pythonxbox"]
 [tool.hatch.envs.default]
 python = "3.13"
 dependencies = [
-    "platformdirs==4.8.0",
+    "platformdirs==4.9.2",
     "ecdsa==0.19.1",
     "httpx==0.28.1",
     "ms_cv==0.1.1",
