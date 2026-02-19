@@ -33,6 +33,21 @@ async def test_people_friends_by_xuid(
 
 
 @pytest.mark.asyncio
+async def test_people_by_xuid_v5(
+    respx_mock: MockRouter, xbl_client: XboxLiveClient
+) -> None:
+    route = respx_mock.get("https://peoplehub.xboxlive.com").mock(
+        return_value=Response(200, json=get_response_json("people_friends_by_xuid_v5"))
+    )
+    ret = await xbl_client.people.get_friends_by_xuid("2669321029139235")
+
+    assert len(ret.people) == 1
+    assert ret.people[0].gamertag == "VolekTheFNDwarf"
+    assert ret.people[0].is_friend is None  # This field is missing in v5
+    assert route.called
+
+
+@pytest.mark.asyncio
 async def test_profiles_batch(
     respx_mock: MockRouter, xbl_client: XboxLiveClient
 ) -> None:

@@ -117,22 +117,22 @@ class Detail(CamelCaseModel):
     is_verified: bool
     location: str | None = None
     tenure: str | None = None
-    watermarks: list[str]
+    watermarks: list[str] = Field(default_factory=list)
     blocked: bool
     mute: bool
     follower_count: int
     following_count: int
     has_game_pass: bool
-    can_be_friended: bool
-    can_be_followed: bool
-    is_friend: bool
-    friend_count: int
-    is_friend_request_received: bool
-    is_friend_request_sent: bool
-    is_friend_list_shared: bool
-    is_following_caller: bool
-    is_followed_by_caller: bool
-    is_favorite: bool
+    can_be_friended: bool | None = None
+    can_be_followed: bool | None = None
+    is_friend: bool | None = None
+    friend_count: int | None = None
+    is_friend_request_received: bool | None = None
+    is_friend_request_sent: bool | None = None
+    is_friend_list_shared: bool | None = None
+    is_following_caller: bool | None = None
+    is_followed_by_caller: bool | None = None
+    is_favorite: bool | None = None
 
 
 class SocialManager(CamelCaseModel):
@@ -201,9 +201,9 @@ class Person(CamelCaseModel):
     preferred_flag: str
     preferred_platforms: list[Any]
     friended_date_time_utc: datetime | None = None
-    is_friend: bool
-    is_friend_request_received: bool
-    is_friend_request_sent: bool
+    is_friend: bool | None = None
+    is_friend_request_received: bool | None = None
+    is_friend_request_sent: bool | None = None
 
 
 class RecommendationSummary(CamelCaseModel):

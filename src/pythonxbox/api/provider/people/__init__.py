@@ -19,8 +19,15 @@ class PeopleProvider(RateLimitedProvider):
     SOCIAL_URL = "https://social.xboxlive.com"
     HEADERS_SOCIAL: ClassVar = {"x-xbl-contract-version": "2"}
     PEOPLE_URL = "https://peoplehub.xboxlive.com"
-    HEADERS_PEOPLE: ClassVar = {
+    # Contract v7 provides full relationship fields (isFriend, canBeFriended, etc), but only works for
+    # get_friends_own, not get_friends_by_xuid
+    HEADERS_PEOPLE_V7: ClassVar = {
         "x-xbl-contract-version": "7",
+        "Accept-Language": "overwrite in __init__",
+    }
+    # Contract v5 works for all endpoints including get_friends_by_xuid
+    HEADERS_PEOPLE_V5: ClassVar = {
+        "x-xbl-contract-version": "5",
         "Accept-Language": "overwrite in __init__",
     }
     SEPERATOR = ","
@@ -38,8 +45,12 @@ class PeopleProvider(RateLimitedProvider):
             client (:class:`XboxLiveClient`): Instance of client
         """
         super().__init__(client)
-        self._headers = {**self.HEADERS_PEOPLE}
-        self._headers.update({"Accept-Language": self.client.language.locale})
+        # Headers for endpoints that work with v7 (provides more fields)
+        self._headers_v7 = {**self.HEADERS_PEOPLE_V7}
+        self._headers_v7.update({"Accept-Language": self.client.language.locale})
+        # Headers for endpoints that require v5 (get_friends_by_xuid)
+        self._headers_v5 = {**self.HEADERS_PEOPLE_V5}
+        self._headers_v5.update({"Accept-Language": self.client.language.locale})
 
     async def get_friends_own(
         self, decoration_fields: list[PeopleDecoration] | None = None, **kwargs
@@ -60,7 +71,7 @@ class PeopleProvider(RateLimitedProvider):
         decoration = self.SEPERATOR.join(decoration_fields)
 
         url = f"{self.PEOPLE_URL}/users/me/people/friends/decoration/{decoration}"
-        resp = await self.client.session.get(url, headers=self._headers, **kwargs)
+        resp = await self.client.session.get(url, headers=self._headers_v7, **kwargs)
         resp.raise_for_status()
         return PeopleResponse.model_validate_json(resp.text)
 
@@ -71,7 +82,10 @@ class PeopleProvider(RateLimitedProvider):
         **kwargs,
     ) -> PeopleResponse:
         """
-        Get friendlist of own profile
+        Get friendlist of a user by their XUID
+
+        Args:
+            xuid: XUID of the user to get friends from
 
         Returns:
             :class:`PeopleResponse`: People Response
@@ -85,8 +99,9 @@ class PeopleProvider(RateLimitedProvider):
             ]
         decoration = self.SEPERATOR.join(decoration_fields)
 
-        url = f"{self.PEOPLE_URL}/users/me/people/xuids({xuid})/decoration/{decoration}"
-        resp = await self.client.session.get(url, headers=self._headers, **kwargs)
+        url = f"{self.PEOPLE_URL}/users/xuid({xuid})/people/social/decoration/{decoration}"
+        # Use v5 headers - contract v7 returns empty people list for other users
+        resp = await self.client.session.get(url, headers=self._headers_v5, **kwargs)
         resp.raise_for_status()
         return PeopleResponse.model_validate_json(resp.text)
 
@@ -116,7 +131,7 @@ class PeopleProvider(RateLimitedProvider):
 
         url = f"{self.PEOPLE_URL}/users/me/people/batch/decoration/{decoration}"
         resp = await self.client.session.post(
-            url, json={"xuids": xuids}, headers=self._headers, **kwargs
+            url, json={"xuids": xuids}, headers=self._headers_v7, **kwargs
         )
         resp.raise_for_status()
         return PeopleResponse.model_validate_json(resp.text)
@@ -137,7 +152,7 @@ class PeopleProvider(RateLimitedProvider):
         url = (
             f"{self.PEOPLE_URL}/users/me/people/recommendations/decoration/{decoration}"
         )
-        resp = await self.client.session.get(url, headers=self._headers, **kwargs)
+        resp = await self.client.session.get(url, headers=self._headers_v7, **kwargs)
         resp.raise_for_status()
         return PeopleResponse.model_validate_json(resp.text)
 
